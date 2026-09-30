@@ -7,13 +7,11 @@
 [![Verification](https://img.shields.io/badge/Verification-12%2F12%20Tests%20Passed%20(100%25)-green.svg)]()
 
 > **Languages / 語言導航 / 言語ナビゲーション**:
-> - [English (Primary)](#english-version-primary)
-> - [繁體中文 (台灣在地口語版)](#繁體中文-台灣在地口語版)
-> - [日本語 (エンジニア向け日本語版)](#日本語-エンジニア向け日本語版)
+> - **English (Primary)**
+> - [繁體中文 (台灣在地口語版)](./README.zh-TW.md)
+> - [日本語 (エンジニア向け日本語版)](./README.ja.md)
 
 ---
-
-# English Version (Primary)
 
 ## 1. Executive Summary & The AI-Native Paradigm Shift
 
@@ -360,7 +358,9 @@ gcc -O2 -Wall -Wextra tests/verify_standalone.c -o tests/verify_standalone -lm
 
 ```
 aerotensorg1/
-├── README.md                      # [This File] Trilingual Comprehensive Engineering Manual
+├── README.md                      # [This File] Primary English Engineering Manual
+├── README.zh-TW.md                # Traditional Chinese Manual (台灣在地口語版)
+├── README.ja.md                   # Japanese Engineering Manual (エンジニア向け日本語版)
 ├── AGENTS.md                      # AI Agent Guidelines & Architecture Rules
 ├── .agents/skills/aerotensor-dev/ # Custom Engineering Skill for AI Assistants
 │   └── SKILL.md                   # Skill specifications, invariants & verification guide
@@ -394,234 +394,6 @@ aerotensorg1/
 │   │       ├── src/models/llama.rs# Zero-heap autoregressive LLaMA decoder
 │   │       ├── src/registry.rs    # MultiModelRegistry, collision & tile isolation
 │   │       └── src/benchmark.rs   # Full system benchmark & cold-boot harness
-│   └── examples/
-│       ├── ai-gemm-demo/          # Phase 1 Sub-millisecond GEMM
-│       ├── ai-pipeline-demo/      # Phase 2 Ping-Pong Double Buffering
-│       ├── ai-board-demo/         # Phase 3 16-Tile Lockstep Board Driver
-│       └── ai-llm-inference/      # Phase 4 Multi-LLM Autoregressive Generation
-├── scripts/
-│   └── run_qemu_server.sh         # QEMU Simulation Runner
-└── tests/
-    ├── verify_standalone.c        # Standalone 12-Test Co-Simulation Testbench
-    └── verify_standalone          # Compiled Test Executable
-```
-
----
-
-# 繁體中文 (台灣在地口語版)
-
-## 1. 專案簡介：這到底是個什麼酷東西？
-
-**AeroTensor-G1 OS** 是一套專門為了自研 AI 晶片（AeroTensor-G1）與航太級、車載邊緣運算打造的 **AI Native 原生作業系統**。我們直接以開源超輕量 Unikernel 架構 **[ArceOS](https://github.com/arceos-org/arceos)** 當地基，把傳統 Linux 裡面那些又肥又拖慢效能的包袱全部砍掉！
-
-在傳統 Linux + CUDA / PyTorch 的架構下，你要跑一個 LLM，作業系統得先開機好幾秒，接著 CUDA 初始化、記憶體在 Host 記憶體跟顯卡顯存之間來回搬移（PCIe 拷貝）、還要被 Linux 排程器的 Context Switch 搞出抖動。
-但在 AeroTensor-G1 上，**張量（Tensor）就是作業系統的第一類公民！** 開機直接就是 AI 運算引擎，**沒有中間商賺差價，零拷貝直接打滿硬體頻寬！**
-
-### 🚀 壓測數據亮點（12 項自測 100% 驗收通過）
-* **開機冷啟動首字延遲 (TTFT)**：狂衝到 **`4.32 ms`**！原本規格只要小於 20 ms 就及格，我們直接幹出 4.32 ms（傳統 Linux 至少要 3 到 10 秒）。
-* **自回歸持續吞吐量**：**`1,470 Tokens/秒`**。
-* **單 Token 解碼延遲**：**`0.68 ms`**（次毫秒級超低延遲，航太飛控完全無壓力）。
-* **Host 到 NPU 記憶體拷貝**：**`0 次`**（96GB HBM3e UMA 物理位址直通）。
-* **硬體 Reduction Tree 廣播延遲**：**`168 ns`**（奈秒級全晶片脈衝同步）。
-
----
-
-## 2. 軟硬體協同架構：硬底子硬體規格
-
-AeroTensor-G1 晶片規格直接拉到最頂：
-* **CPU 核心群**：64 核心 ARMv9.2-A（4 個 Cluster × 16 核心，Neoverse-V2 架構 @ 3.0 GHz），搭載 SVE2 向量延伸指令與 SME 矩陣延伸架構。
-* **NPU 運算核心**：16 顆異質運算 Tile，提供 **512 TFLOPS (FP16) / 1024 TOPS (INT8)** 的狂暴算力（@ 1.4 GHz）。
-* **UMA 統一記憶體**：96 GB HBM3e，透過 4 組 24GB 12-Hi 堆疊提供高達 **3,200 GB/s (3.2 TB/s)** 的物理頻寬。
-* **一致性匯流排**：AMBA 5 CHI 搭配 4×4 2D Torus NoC（二分頻寬 **1,024 GB/s**，全晶片 Crossbar 聚合高達 **4,096 GB/s**）。CPU 跟 NPU 共用快取一致性域，硬體自動保證一致，**軟體完全不用再去手動 Cache Flush（CMO Bypass）**！
-* **晶上快取與 SRAM**：64MB 分散式系統快取 (SLC，頻寬 **2,048 GB/s**) + 16MB L1 高速 Scratchpad SRAM (頻寬 **2,867 GB/s**)。
-* **整晶片熱設計功耗 (TDP)**：**450 W**（伺服器滿載標準模式）/ **230 W**（航太無人機機載低功耗模式）。
-* **中斷映射**：GICv3 SPI 64~79 直接硬體綁定到 Tile 0~15，搭配 ARM `sev` 事件秒級喚醒。
-
-#### 💡 頻寬階層與 TDP 功耗科學推導（為什麼是 3,200 GB/s 與 450W/230W？）
-很多朋友會好奇，這 3.2 TB/s 跟 450W 的數字是怎麼算出來的？身為底層工程師，我們不吹牛皮，直接算給你看：
-1. **整體頻寬推導（3,200 GB/s = 3.2 TB/s）**：
-   - 封裝內塞了 4 顆 24GB 12-Hi 的 HBM3e，每顆 HBM3e 的介面位寬是標準 1024-bit。4 顆拉滿就是 $4 \times 1024 = 4096 \text{ bits}$ 匯流排！
-   - 我們取非常成熟穩健的工業速率 $6.25 \text{ Gbps}$（JEDEC 標準最頂可達 9.6 Gbps）：
-     $$\text{頻寬} = \frac{4096 \text{ bits} \times 6.25 \text{ Gbps}}{8 \text{ bits/Byte}} = 3,200 \text{ GB/s} = 3.2 \text{ TB/s}$$
-   - **算力頻寬比 (Arithmetic Intensity)**：$512 \text{ TFLOPS} / 3.2 \text{ TB/s} = 160 \text{ FLOP/Byte}$。在 LLM 自回歸解碼這種極度吃記憶體頻寬（Memory-bound）的場景下，3.2 TB/s 剛好能夠撐住 1B 模型跑到每秒 **1,470 Tokens** 的理論天花板，數字咬得嚴絲合縫！
-2. **熱設計功耗 (TDP: 伺服器 450W / 航太 230W) 推導**：
-   - 在台積電 4nm (TSMC N4P) 製程與 2.5D CoWoS 封裝下，功耗由五大區塊組成：
-     - **CPU（64 核 Neoverse-V2）**：3.0 GHz 全核滿載單核約 1.8~2.0W，極限壓力 120W；但在 AI 推論下大部分核心都在等中斷或自旋，典型只需 **75 W**。
-     - **NPU（16 Tile，512 TFLOPS）**：現代 Systolic 陣列能效比約 3.5 TFLOPS/W，計算核心吃 $512 / 3.5 \approx 146\text{W}$，加內部 SRAM/控制約 **160 W** 滿載（典型 110W）。
-     - **HBM3e（96GB）**：JEDEC 規範 PHY + DRAM 顆粒約 3.2 pJ/bit，拉滿 3.2 TB/s (25.6 Tbps) 需耗能約 82W，加上靜態功耗共 **95 W** 滿載（典型 60W）。
-     - **NoC 路由 + 64MB SLC**：高頻交叉切換吃 **45 W**（典型 30W）。
-     - **PCIe Gen5 x16 / 供電 VRM 熱損耗**：約 **30 W**（典型 20W）。
-     - **加總極限壓力 TDP = 450 W**！這正好對齊業界主流 2U 伺服器風冷散熱極限（對標 NVIDIA GH200 450~500W，AMD MI300A 550~760W，我們這個設計非常克制且符合物理定律）。
-   - **航太/無人機 230W 節能模式**：機載封閉抗震艙散熱預算只有 250W。我們透過硬體 DVFS 降頻：CPU 降到 2.2 GHz (55W)、NPU 降到 1.0 GHz (95W，依然能打出 ~365 TFLOPS)、HBM3e 降到 4.8 Gbps (48W, 2.45 TB/s)，整顆 SoC 功耗壓制在 **230 W**，既能抗熱暴走、又能兼顧飛控次毫秒反應！
-
----
-
-## 3. ArceOS 核心模組實作剖析
-
-我們在 `arceos/modules/` 底下親手實作了三個核心模組：
-
-### 1. `axcompute`（NPU 算力驅動與環形佇列）
-* **`device.rs`**：定義嚴格等於 **64 位元組** 的 `AeroTensorSQE`（正好對齊 ARM 的一條快取行 Cacheline，踩坑千萬不能隨便加 Padding！）與 16 位元組的 `AeroTensorCQE`。
-* **`queue.rs`**：純原子操作（Atomic）、完全無鎖（Lock-free）的 SQ/CQ 環形佇列，還自帶軟體 FP16 GEMM 模擬器。
-* **`ops.rs` & `async_op.rs`**：超好用的鏈式呼叫風格 `MatMul::new(...).dispatch()`，實作標準 Rust `Future`，跟非同步執行棧完美整合。
-* **`driver.rs`, `irq.rs`, `coherency.rs`**：抽象出 `TensorComputeDriver` 介面，實作 GICv3 SPI 64~79 中斷分發與 AMBA 5 CHI 一致性。
-
-### 2. `axtensor_mem`（三級記憶體與大頁分配器）
-* 把記憶體切成 **L1 片上高速 SRAM (16MB)**、**L2 區域 HBM (16GB)**、**L3 共享 UMA (96GB)**。
-* 實作 `ContinuousHugePageAllocator`：模型權重直接塞進 **1GB 巨大頁**（Level 1 頁表直通，TLB Miss 直接歸零），KV-Cache 走 **2MB 巨大頁**。
-
-### 3. `axtensor`（神經網路算子與多模型掛載架構）
-* **`safetensors.rs`**：純 `no_std` 零堆疊配置 Safetensors 解析器，把檔案頭當成張量描述符，權重直接映射實體位址。
-* **`nn.rs`**：手刻高優化算子，包含 `RMSNorm`（ARM NEON 向量化 `fast_rsqrt`）、原地旋轉位置編碼 `RoPE`、`SwiGLU` 激活函數、以及直通硬體 SQE 的 `Linear` 全連接層。
-* **`kv_cache.rs`**：2MB 巨大頁槽位式定址，解碼過程中 **0 次 `malloc` / `free`**。
-* **`models/llama.rs`**：零堆疊配置的 LLaMA Transformer 解碼器骨幹。
-* **`registry.rs`**：多模型並行共存管理器 `MultiModelRegistry`。
-
----
-
-## 4. Candle 移植決策與多模型共存掛載
-
-### 為什麼不直接搬整套 Hugging Face Candle？
-Candle 雖然好用，但它底層把設備寫死成 `enum Device { Cpu, Cuda, Metal }`，而且裡面滿滿都是 `std::sync`、`std::fs`、`rayon` 等標準庫依賴，根本塞不進 Unikernel 核心。
-因此我們採取 **「外借其形，內造其心」** 的策略：表面上保有 Candle 簡潔流暢的呼叫風格與 Safetensors 規範，骨子裡全改成 `no_std` 零拷貝直通硬體。
-
-### 多模型掛載：邊緣任務與航太飛控如何不打架？
-在無人機或太空飛行器上，我們常需要同時跑兩種模型：
-1. **任務規劃模型（例如 LLaMA-7B）**：負責看懂複雜語意與長指令（吞吐量優先）。
-2. **飛控安全模型（例如 Flight-Safety-1B）**：負責毫米級避障與即時動態平衡（確定性延遲優先）。
-
-我們的 `MultiModelRegistry` 透過三大機制搞定多模型共存：
-1. **記憶體碰撞檢測**：註冊時自動檢查實體位址區間，只要權重範圍有重疊立刻噴錯，絕不踩爛別人的記憶體。
-2. **16-Tile 空間硬體切分 (`tile_mask`)**：7B 模型吃 Tile 0~7（`0x00FF`），1B 飛控模型吃 Tile 8~15（`0xFF00`），硬體算力跟內部 SRAM 完全隔離！
-3. **優先權搶佔排程**：支援 `Critical` 標籤，飛控任務一來直接插隊派發，中斷優先回應。
-
----
-
-## 5. 如何編譯與測試驗證
-
-本專案內建一套獨立的軟硬體協同自測套件（無需實體晶片即可驗證全鏈路邏輯）：
-
-```bash
-# 編譯並執行 12 項全鏈路整合測試
-gcc -O2 -Wall -Wextra tests/verify_standalone.c -o tests/verify_standalone -lm
-./tests/verify_standalone
-```
-
-看到 `[SUCCESS] ALL INTEGRATION TESTS PASSED (100% Verified)` 代表所有硬體暫存器、環形佇列、大頁記憶體、算子、多模型隔離與冷啟動驗收全部歐趴！
-
----
-
-# 日本語 (エンジニア向け日本語版)
-
-## 1. プロジェクト概要
-
-**AeroTensor-G1 OS** は、次世代の航空宇宙・自動運転・エッジAI向けカスタムSoC「AeroTensor-G1」と、モジュール型Unikernel「[ArceOS](https://github.com/arceos-org/arceos)」を統合した**AI-Native ベアメタルOS**です。
-
-Linuxカーネルの重厚なマルチプロセス管理、CFSスケジューラのジッター、ユーザー/カーネル空間のコンテキストスイッチ、PCIe経由のホスト・デバイス間メモリコピーを完全に排除し、**TensorをOSの第一級オブジェクト（First-class citizen）**として設計しました。電源投入から瞬時にニューラルエンジンを起動し、サブミリ秒オーダーのリアルタイムLLM推論を実現します。
-
-### 📊 ベンチマーク検証結果（スタンドアロン検証で 100% 合格）
-* **コールドブート初回トークン生成遅延 (TTFT)**: **`4.32 ms`**（目標値 `< 20 ms` を大幅にクリア、一般的なLinux+GPU環境の数秒〜数十秒に対し劇的な短縮）。
-* **自己回帰生成スループット**: **`1,470 Tokens/sec`**。
-* **単一トークンデコード遅延**: **`0.68 ms`**（1ミリ秒未満のリアルタイム制御を実現）。
-* **ホスト・デバイス間メモリコピー回数**: **`0`**（96GB HBM3e UMAによる物理アドレス完全直結）。
-* **ハードウェアReduction Tree同期遅延**: **`168 ns`**（16個のタイル間におけるナノ秒パルス同期）。
-
----
-
-## 2. ハードウェア・ソフトウェア協調アーキテクチャ
-
-* **CPU**: 64コア ARMv9.2-A（Neoverse-V2クラス @ 3.0 GHz、SVE2/SME対応）。
-* **NPU**: 16タイル構成の異種並列アクセラレータ（**512 TFLOPS FP16 / 1024 TOPS INT8** @ 1.4 GHz）。
-* **メモリ**: 96GB HBM3e UMA（4x 24GB 12-Hi スタック、4096-bit バス @ 6.25 Gbps）、合計帯域幅 **3,200 GB/s (3.2 TB/s)**。
-* **インターコネクト**: AMBA 5 CHI プロトコル採用 4×4 2D Torus NoC（バイセクション帯域幅 **1,024 GB/s**、全チップクロスバー帯域幅 **4,096 GB/s**）。ハードウェアコヒーレンシによりキャッシュ無効化命令をバイパス（CMO Bypass）。
-* **オンチップキャッシュ・SRAM**: 64MB 分散SLC（帯域幅 **2,048 GB/s**）+ 16MB L1 Scratchpad SRAM（帯域幅 **2,867 GB/s**）。
-* **熱設計電力 (TDP)**: **450 W**（サーバー高負荷プロファイル）/ **230 W**（航空宇宙・車載向け低消費電力プロファイル）。
-* **割り込み制御**: GICv3 SPI 64〜79 を各NPUタイルに1対1で直結。低遅延なARM `sev` イベントによる即時起床。
-
-#### 📐 ハードウェア帯域幅およびTDP消費電力の導出根拠
-1. **UMAメモリ総帯域幅 (3,200 GB/s = 3.2 TB/s)**:
-   - 24GB 12-Hi HBM3e を4スタック実装（計96GB）。1スタックあたり1024-bitインターフェースを持つため、合計バス幅は $4 \times 1024 = 4096 \text{ bits}$。
-   - 工業的に成熟した安定レート $6.25 \text{ Gbps}$（JEDEC規格上限は9.6 Gbps）を採用：
-     $$\text{帯域幅} = \frac{4096 \text{ bits} \times 6.25 \text{ Gbps}}{8 \text{ bits/Byte}} = 3,200 \text{ GB/s} = 3.2 \text{ TB/s}$$
-   - **演算密度 (Arithmetic Intensity)**: $512 \text{ TFLOPS} / 3.2 \text{ TB/s} = 160 \text{ FLOP/Byte}$。自己回帰デコード等のメモリバウンドな処理において、1Bモデルの理論上限（約1,600 Tokens/s）を完全に支え、実測値1,470 Tokens/sと精密に合致します。
-2. **熱設計電力 (450W サーバーTDP / 230W 航空宇宙プロファイル)**:
-   - TSMC 4nm (N4P) プロセスおよび 2.5D CoWoS-S パッケージングにおける消費電力内訳：
-     - **CPU (64コア Neoverse-V2)**: 3.0 GHz 動作時、コア単体で約 1.8〜2.0 W、ピーク時 120 W（AI推論時はWFI待機の活用により通常 75 W）。
-     - **NPU (16タイル、512 TFLOPS)**: 電力効率 3.5 TFLOPS/W により演算ロジック 146 W + SRAM/制御 14 W = 計 160 W（通常 110 W）。
-     - **HBM3e (96GB)**: PHY/DRAMコア合計 3.2 pJ/bit、3.2 TB/s 転送時 82 W + 静的リフレッシュ 13 W = 計 95 W（通常 60 W）。
-     - **NoC・64MB SLC**: 45 W（通常 30 W）。
-     - **PCIe Gen5 / IO / 電源VRM損失**: 30 W（通常 20 W）。
-     - **ピークストレステストTDP = 450 W**（標準的な2U空冷ヒートシンクまたは液冷コールドプレートに対応。NVIDIA GH200の450〜500Wと同等の合理的な物理設計）。
-   - **航空宇宙・ミッション向け低電力モード (230 W)**: 熱暴走防止と密閉型アビオニクス筐体向けに、DVFS制御によりCPU 2.2 GHz（55W）、NPU 1.0 GHz（95W、約365 TFLOPS出力）、HBM3e 4.8 Gbps（48W、2.45 TB/s）へダウンクロックし、全システム消費電力を **230 W** に抑制。
-
----
-
-## 3. ArceOS 内部コアモジュール
-
-ArceOS の [`arceos/modules/`](./arceos/modules/) 配下に実装された3大コアモジュール：
-
-1. **`axcompute` (NPUドライバ・リングバッファ)**
-   * 64バイト固定長（キャッシュライン一致）の `AeroTensorSQE` と 16バイトの `AeroTensorCQE`。
-   * アトミック操作によるロックフリー SQ/CQ リングバッファ、FP16 GEMM ソフトウェアエミュレータ。
-   * 非同期 Rust `Future` に対応した `ComputeFuture` と GICv3 SPI 64〜79 割り込みディスパッチャ。
-2. **`axtensor_mem` (3層ゼロコピーメモリ管理)**
-   * L1（オンチップSRAM 16MB）、L2（ローカルHBM 16GB）、L3（ホストUMA 96GB）の階層管理。
-   * 重み用の1GB巨大ページ（Level-1 Translation対応、TLBミスゼロ化）およびKV-Cache用の2MB巨大ページアロケータ。
-3. **`axtensor` (AIランタイム・マルチモデル管理)**
-   * 純粋な `no_std` によるゼロヒープ Safetensors パーサー（UMA物理アドレス直接マッピング）。
-   * `RMSNorm`（ARM NEON `fast_rsqrt`）、`RoPE`、`SwiGLU`、ハードウェア直結型 `Linear` レイヤー。
-   * 2MB巨大ページスロット定址型 KV-Cache（自己回帰デコードループ中のヒープアロケーション 0 回）。
-   * 複数LLM並行ホスティングレジストリ `MultiModelRegistry`（物理メモリアドレス衝突検出、16タイルの空間ハードウェア分割 `tile_mask`、優先度付きプリエンプション）。
-
----
-
-## 4. Candle 統合戦略とマルチモデル並行ホスティング
-
-### Candleの直接統合を見送った理由
-Hugging Face の Candle は優れたライブラリですが、内部のデバイス定義が `enum Device { Cpu, Cuda, Metal }` でハードコードされており、また `std::sync` や `rayon` などの標準ライブラリに強く依存しているため、ベアメタルのOSカーネル（`no_std`）内への直接組み込みには適していません。
-
-### 「形を借りて、魂を創る」戦略
-Candle の直感的なAPIデザインと Safetensors 規格を採用しつつ、内部実装はベアメタルOS向けに完全再設計：
-* Safetensors のヘッダから直接物理メモリアドレスを取得し、メモリコピーゼロを実現。
-* 航太・エッジ向けに、任務計画用モデル（LLaMA-7B、Tile 0〜7割当）とリアルタイム安全制御モデル（Flight-Safety-1B、Tile 8〜15割当）を独立したハードウェア空間で並行稼働。
-
----
-
-## 5. ビルドおよび動作検証手順
-
-本リポジトリには、ハードウェアCo-Simulation用のスタンドアロン検証スイートが同梱されています：
-
-```bash
-# 12項目の統合検証テストスイートをコンパイルして実行
-gcc -O2 -Wall -Wextra tests/verify_standalone.c -o tests/verify_standalone -lm
-./tests/verify_standalone
-```
-
-コンソールに `[SUCCESS] ALL INTEGRATION TESTS PASSED (100% Verified)` と出力されれば、全アーキテクチャの正常動作が確認されます。
-
----
-
-## 6. Repository Layout & Docs Navigation
-
-```
-aerotensorg1/
-├── README.md                      # [This File] Trilingual Comprehensive Manual
-├── AGENTS.md                      # AI Agent Guidelines & Engineering Rules
-├── .agents/skills/aerotensor-dev/ # Workspace Engineering Skill for Antigravity/Agents
-├── docs/                          # Architecture Specifications & Whitepapers
-│   ├── README.md                  # Documentation Portal & Reading Guide
-│   ├── 00_aerotensor_g1_sdd.md    # Hardware-Software Co-Design SDD (Official Spec)
-│   ├── 01_arceos_deep_dive.md     # ArceOS Unikernel Deep-Dive Analysis
-│   ├── 02_ai_native_os_architecture.md # AI-Native Operating System Design
-│   ├── 03_custom_ai_chip_integration.md # AeroTensor-G1 MMIO & SQ/CQ Interconnect
-│   ├── 04_prototype_roadmap_and_impl.md # 4-Phase Roadmap, Milestones & Verification
-│   ├── 05_multi_llm_and_candle_integration.md # Multi-LLM Co-Hosting & Candle Integration
-│   └── 06_agent_workflow_and_skills.md # Autonomous Agent Workflow & Dev Checklist
-├── arceos/                        # Modular Unikernel Tree
-│   ├── modules/
-│   │   ├── axcompute/             # Accelerator Hardware Driver & SQ/CQ Core
-│   │   ├── axtensor_mem/          # 3-Tier HugePage Zero-Copy Allocators
-│   │   └── axtensor/              # Safetensors, Neural Ops, LLaMA, MultiModelRegistry
 │   └── examples/
 │       ├── ai-gemm-demo/          # Phase 1 Sub-millisecond GEMM
 │       ├── ai-pipeline-demo/      # Phase 2 Ping-Pong Double Buffering
