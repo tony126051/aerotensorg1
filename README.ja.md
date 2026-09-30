@@ -7,8 +7,8 @@
 [![Verification](https://img.shields.io/badge/Verification-12%2F12%20Tests%20Passed%20(100%25)-green.svg)]()
 
 > **Languages / 語言導航 / 言語ナビゲーション**:
-> - [English (Primary)](./README.md)
-> - [繁體中文 (台灣在地口語版)](./README.zh-TW.md)
+> - [English](./README.md)
+> - [繁體中文](./README.zh-TW.md)
 > - **日本語 (エンジニア向け日本語版)**
 
 ---
