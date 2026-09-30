@@ -8,7 +8,7 @@
 
 > **Languages / 語言導航 / 言語ナビゲーション**:
 > - **English (Primary)**
-> - [繁體中文 (台灣在地口語版)](./README.zh-TW.md)
+> - [繁體中文](./README.zh-TW.md)
 > - [日本語 (エンジニア向け日本語版)](./README.ja.md)
 
 ---
