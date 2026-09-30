@@ -1,0 +1,12 @@
+[package]
+name = "axtensor"
+version.workspace = true
+edition.workspace = true
+authors = ["AeroTensor Team"]
+description = "AeroTensor Zero-Copy Model Loader and Distributed Transformer Engine"
+license.workspace = true
+
+[dependencies]
+axmm = { workspace = true }
+axtp = { workspace = true }
+log = "0.4"

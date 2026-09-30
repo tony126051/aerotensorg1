@@ -1,0 +1,10 @@
+[package]
+name = "axtp"
+version.workspace = true
+edition.workspace = true
+authors = ["AeroTensor Team"]
+description = "AeroTensor Topology-Aware Tensor Parallelism Scheduler"
+license.workspace = true
+
+[dependencies]
+log = "0.4"
