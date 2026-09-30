@@ -9,4 +9,6 @@ license.workspace = true
 [dependencies]
 axmm = { workspace = true }
 axtp = { workspace = true }
+axcompute = { workspace = true }
+axtensor_mem = { workspace = true }
 log = "0.4"

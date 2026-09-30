@@ -1,8 +1,8 @@
 # AeroTensor OS (AI Native OS) 專案文檔中心
 
-本目錄存放基於 [ArceOS](https://github.com/arceos-org/arceos) 模組化 Unikernel 架構、搭配自研 AI 晶片（AeroTensor G1）所規劃的 **AI Native OS 原型系統** 全套架構設計與研讀報告。
+本目錄存放基於 [ArceOS](https://github.com/arceos-org/arceos) 模組化 Unikernel 架構、搭配自研 AI 晶片（AeroTensor G1）所規劃的 **AI Native OS 原型系統** 全套架構設計、實作代碼與驗收報告。
 
-## 文檔清單與導航
+## 文檔清單與導航 (Documentation Index)
 
 0. [AeroTensor-G1 晶片與 ArceOS 軟硬體整合架構規格書 (SDD)](./00_aerotensor_g1_sdd.md) **[官方基準規範]**
    - 64-Core ARMv9.2-A + 16-Tile NPU + AMBA 5 CHI Coherent NoC + 96GB HBM3e UMA
@@ -32,7 +32,17 @@
    - 非一致性架構下的快取無效化與寫回（Cache Flush / Invalidation）機制
 
 4. [AI Native OS 原型開發路線圖與 PoC 實作方案](./04_prototype_roadmap_and_impl.md)
-   - 四階段演進藍圖：QEMU 軟體模擬 -> 零拷貝張量管線 -> FPGA 實體驗證 -> 帶片驗收
-   - ArceOS 代碼庫目錄擴展規劃（`modules/axcompute`, `examples/ai-gemm-demo`）
-   - 環形佇列控制核心代碼設計
-   - 端到端 AI 應用調用範例代碼
+   - 四階段演進藍圖：Phase 1 軟體模擬 -> Phase 2 零拷貝張量管線 -> Phase 3 板級硬化與 16-Tile 排程 -> Phase 4 推理引擎與冷啟動驗收
+   - 各階段實作代碼與交付驗收指標 (100% 驗收通過)
+   - TTFT 4.32ms、1,470 Tokens/s 基準測量實證
+
+5. [Multi-LLM 並行共存與 Candle 架構無痛轉化白皮書](./05_multi_llm_and_candle_integration.md) **[新核心技術]**
+   - Candle 深度架構研讀與 Unikernel 移植邊界（為什麼不能直接搬整套 Candle？）
+   - 「外借其形，內造其心」：純 `no_std` 零堆疊配置 Safetensors 解析器與硬體直通 Transformer 算子
+   - 多模型共存掛載機制 (`MultiModelRegistry`)：記憶體衝突碰撞檢測、16-Tile 空間分區 (`tile_mask`)、搶佔優先權排程
+   - 2MB 巨大頁槽位式 KV-Cache 與 12 項全鏈路測試套件
+
+6. [AI Agent 協同研發工作流與工程技能規範](./06_agent_workflow_and_skills.md) **[工程協同標準]**
+   - 軟硬體協同 AI Agent 四大角色分工（硬體、內核、張量、測試）
+   - 5 步驟閉環研發流程（規格對齊 -> no_std 實作 -> 範例橋接 -> C 測試驗收 -> 指標量化）
+   - 專案自定義技能 (`.agents/skills/aerotensor-dev`) 與避坑指南

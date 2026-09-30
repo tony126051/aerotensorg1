@@ -1,0 +1,11 @@
+[package]
+name = "ai-llm-inference"
+version = "0.1.0"
+edition.workspace = true
+authors = ["AeroTensor Team"]
+
+[dependencies]
+axcompute = { workspace = true }
+axtensor = { workspace = true }
+axtensor_mem = { workspace = true }
+axstd = { workspace = true, optional = true }

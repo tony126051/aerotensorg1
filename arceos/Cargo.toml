@@ -19,6 +19,8 @@ members = [
     "modules/axipi",
     "modules/axtp",
     "modules/axtensor",
+    "modules/axcompute",
+    "modules/axtensor_mem",
 
     "api/axfeat",
     "api/arceos_api",
@@ -33,6 +35,10 @@ members = [
     "examples/httpserver",
     "examples/shell",
     "examples/kernel_integration_test",
+    "examples/ai-gemm-demo",
+    "examples/ai-pipeline-demo",
+    "examples/ai-board-demo",
+    "examples/ai-llm-inference",
 ]
 
 [workspace.package]
@@ -71,6 +77,8 @@ axdma = { path = "modules/axdma" }
 axipi = { path = "modules/axipi" }
 axtp = { path = "modules/axtp" }
 axtensor = { path = "modules/axtensor" }
+axcompute = { path = "modules/axcompute" }
+axtensor_mem = { path = "modules/axtensor_mem" }
 
 [profile.release]
 lto = true

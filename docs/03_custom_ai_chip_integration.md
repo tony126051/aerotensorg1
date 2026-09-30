@@ -141,3 +141,27 @@ pub trait TensorComputeDriver: Send + Sync {
 - **Host 寫入輸入張量後**：必須在敲擊 Doorbell 前執行 `axhal::arch::cache_flush(tensor_vaddr, size)`，確保資料寫回實體 DDR。
 - **晶片計算完成並 DMA 回寫主記憶體後**：Host CPU 讀取前必須執行 `axhal::arch::cache_invalidate(tensor_vaddr, size)`，強迫 CPU 重新從實體記憶體讀取最新數據。
 - 在支援硬體 CCI（Cache Coherent Interconnect，如 CXL 或 ARM AMBA 5 CHI）的架構中，則可跳過快取操作，實現純零延遲直讀。
+
+---
+
+## 5. 實體頻寬與功耗熱設計 (Physical Bandwidth & Power Specifications)
+
+AeroTensor-G1 針對航太載具、車載邊緣與高密度伺服器提供明確的頻寬階層與散熱規範：
+
+### 5.1 頻寬規格表 (Bandwidth Breakdown)
+| 階層 (Level) | 介面 / 協定 | 匯流排位寬 / 頻率 | 峰值頻寬 (Peak Bandwidth) | 特性說明 |
+| :--- | :--- | :--- | :--- | :--- |
+| **L1 SRAM** | 16-Tile 內部 Scratchpad | 512-bit x2 / Tile @ 1.4 GHz | **2,867 GB/s (2.87 TB/s)** | 零等待循環，直接提供 Systolic 乘加器矩陣操作數 |
+| **L3 SLC** | 16-Slice 分散式系統快取 | 512-bit / Slice @ 2.0 GHz | **2,048 GB/s (2.05 TB/s)** | 共享快取，攔截跨 Tile 與 CPU 之間的熱門資料 |
+| **片上網絡 (NoC)** | AMBA 5 CHI 4x4 2D Torus | 512-bit Flit @ 2.0 GHz | **1,024 GB/s (1.02 TB/s)** | 二分頻寬；全晶片 Crossbar 聚合吞吐量達 4.1 TB/s |
+| **統一記憶體 (UMA)** | 4x 24GB 12-Hi HBM3e 堆疊 | 4096-bit 總寬 @ 6.25 Gbps | **3,200 GB/s (3.20 TB/s)** | CPU 與 NPU 共享 96GB 物理位址，零拷貝 DMA 直通 |
+
+### 5.2 熱設計功耗 (TDP) 與散熱設定
+* **資料中心標準模式 (Server TDP: 450 W)**:
+  - 適用場景：機架式 2U 伺服器、航電集中計算艙。
+  - 散熱配置：標準 2U 風冷鰭片或液冷冷板。
+  - 輸出算力：512 TFLOPS FP16 dense, 1024 TOPS INT8。
+* **航太/無人機低功耗模式 (Flight Mission TDP: 230 W)**:
+  - 適用場景：抗輻照密閉艙、戰術無人載具機載電腦。
+  - 動態能耗調節 (DVFS)：CPU 降至 2.2 GHz (55W)、NPU 降至 1.0 GHz (95W)、HBM3e 降至 4.8 Gbps (48W, 2.45 TB/s)。
+  - 總功耗收斂至 230 W，滿足嚴苛之無風扇或熱管傳導散熱邊界。

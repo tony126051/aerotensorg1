@@ -1,0 +1,15 @@
+[package]
+name = "axtensor_mem"
+version.workspace = true
+edition.workspace = true
+authors = ["AeroTensor Team"]
+description = "AeroTensor Continuous HugePage (2MB/1GB) and SRAM Tiered Memory Allocator"
+license.workspace = true
+
+[dependencies]
+log = "0.4"
+kspin = "0.2"
+axmm = { workspace = true, optional = true }
+
+[features]
+default = []
