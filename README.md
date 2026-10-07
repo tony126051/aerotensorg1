@@ -1,4 +1,4 @@
-# AeroTensor-G1: AI-Native Bare-Metal Operating System
+# AeroTensor-G1: AI-Native Hardware–Software Co-Design Platform
 
 [![Rust](https://img.shields.io/badge/Rust-1.85+-orange.svg)](https://www.rust-lang.org)
 [![ArceOS](https://img.shields.io/badge/ArceOS-Unikernel-blue.svg)](https://github.com/arceos-org/arceos)
@@ -15,7 +15,10 @@
 
 ## 1. Executive Summary & The AI-Native Paradigm Shift
 
-**AeroTensor-G1 OS** is an AI-Native, bare-metal operating system built directly upon the modular [ArceOS](https://github.com/arceos-org/arceos) Unikernel. Tailored for next-generation aerospace avionics, autonomous combat aerial vehicles (UCAVs), hypersonic guidance, and mission-critical edge robotics, AeroTensor-G1 OS re-architects the fundamental contract between hardware and software by treating the **Tensor as a first-class citizen of the operating system**.
+**AeroTensor-G1 OS** is an AI-native, bare-metal computing prototype built on the modular [ArceOS](https://github.com/arceos-org/arceos) unikernel. Tailored for next-generation aerospace avionics, autonomous combat aerial vehicles (UCAVs), hypersonic guidance, and mission-critical edge robotics, AeroTensor-G1 OS re-architects the fundamental contract between hardware and software by treating the **Tensor as a first-class citizen of the operating system**.
+
+**AeroTensor-G1 OS** is an architectural research prototype. Performance figures in this repository are based on software simulation, analytical modeling, or target specifications unless explicitly stated otherwise. These results represent modeled system-level performance and architectural targets, not measurements from fabricated silicon.
+
 
 ### The "Latency Tax" of Conventional Operating Systems
 In traditional AI computing stacks (e.g., Linux + NVIDIA CUDA / PyTorch or vLLM), running large language models incurs staggering software taxations:
@@ -28,11 +31,11 @@ In traditional AI computing stacks (e.g., Linux + NVIDIA CUDA / PyTorch or vLLM)
 AeroTensor-G1 OS eliminates the user-kernel boundary and bundles the inference engine directly with the bare-metal kernel:
 * **Zero PCIe/Host-to-Device Memory Copies**: 96GB HBM3e Unified Memory Architecture (UMA) provides a single, physically continuous address space shared transparently by the 64 ARMv9.2-A CPU cores and 16 NPU tiles.
 * **Zero Heap Allocation in Forward Paths**: All model weights, intermediate scratchpads, and KV-cache slots are backed by continuous 1GB and 2MB HugePages, eliminating dynamic heap allocations and TLB misses.
-* **Deterministic Execution & Zero Jitter**: Single-address-space execution removes page table switches, translation lookaside buffer (TLB) flushes, and scheduling interrupts from the inference hot path.
+* **Deterministic Execution & Reduced OS-Induced Jitter**: Single-address-space execution removes page table switches, translation lookaside buffer (TLB) flushes, and scheduling interrupts from the inference hot path.
 
-### 📊 Quantitative Architectural Comparison
+### 📊 Modeled Architectural Comparison
 
-| Dimension / Metric | Traditional Stack (Linux + CUDA / vLLM) | AeroTensor-G1 OS (ArceOS AI-Native Unikernel) | Improvement Factor |
+| Dimension / Metric | Conventional Stack (Reference Range) | AeroTensor-G1 OS (Modeled / Target) | Projected Improvement |
 | :--- | :--- | :--- | :--- |
 | **Execution Environment** | Multi-process, Ring 0/Ring 3 split, CFS | Single Address Space Unikernel (`#![no_std]`) | **Zero Context-Switch Overhead** |
 | **Cold-Boot to 1st Token (TTFT)** | 3,000 ms ~ 12,000 ms (CUDA Init + Weights) | **`4.32 ms`** (Cold Boot to Output Token) | **> 700× Faster Boot** |
@@ -41,6 +44,10 @@ AeroTensor-G1 OS eliminates the user-kernel boundary and bundles the inference e
 | **Host-to-Device Memory Copies** | 1~2 Copies (Host DRAM -> PCIe -> VRAM) | **`0 Copies`** (Physical UMA Direct Map) | **Zero Bus Redundancy** |
 | **Inter-Tile Reduction Latency** | 5 µs ~ 15 µs (PCIe / NVLink NCCL kernel) | **`168 ns`** (Hardware Reduction Pulse Line) | **~50× Faster Synchronization** |
 | **TLB Translation Overhead** | 4-Level Page Table Walks (4KB Pages) | **1-Level Translation** (1GB/2MB HugePages) | **Zero TLB Thrashing** |
+
+> **Note:** AeroTensor-G1 figures are derived from software simulation,
+> analytical modeling, and architectural target specifications.
+> They are not measurements from fabricated silicon.
 
 ---
 
@@ -66,20 +73,23 @@ AeroTensor-G1 OS eliminates the user-kernel boundary and bundles the inference e
 |  - 64-Byte Cacheline-Aligned SQE / 16-Byte CQE        - Lockless Atomic Ring Buffers (SQ/CQ)       |
 |  - TensorComputeDriver Hardware Abstraction           - GICv3 SPI 64~79 IRQ & ARM `sev` Dispatcher |
 +----------------------------------------------------------------------------------------------------+
-|                            AEROTENSOR-G1 CUSTOM ACCELERATOR SILICON                                |
+|                            AEROTENSOR-G1 MODELED ACCELERATOR ARCHITECTURE                                |
 |  - 64-Core ARMv9.2-A CPU (Neoverse-V2, 3.0 GHz)       - 16-Tile Heterogeneous NPU (4x4 2D Torus)   |
 |  - 96GB HBM3e Unified Memory (3,200 GB/s UMA)         - Hardware Barrier Unit (HBU) Pulse Line     |
 +----------------------------------------------------------------------------------------------------+
 ```
 
-### 2.1 Silicon Subsystem Specifications
+### 2.1 Target Silicon Architecture
+
+The following specifications define the target architecture used by the AeroTensor-G1 analytical and software modeling environment.
+
 * **CPU Complex**:
   - 64-Core ARMv9.2-A organized in 4 clusters of 16 cores (Neoverse-V2 microarchitecture running at 3.0 GHz).
   - Private 64KB L1 I-Cache, 64KB L1 D-Cache, and 1MB private L2 Cache per core (total 64MB L2).
   - Supports SVE2 (4×128-bit vector pipelines) and SME (Scalable Matrix Extension) for CPU-side vector pre/post-processing.
 * **NPU Compute Fabric**:
   - 16 Heterogeneous Compute Tiles interconnected via a 4×4 2D Torus Coherent NoC.
-  - Peak Compute Density: **512 TFLOPS FP16/BF16 dense** (1024 TFLOPS with 2:1 structured sparsity) or **1024 TOPS INT8** sustained compute at 1.4 GHz.
+  - Target Peak Compute: **512 TFLOPS FP16/BF16 dense** (1024 TFLOPS with 2:1 structured sparsity) or **1024 TOPS INT8** sustained compute at 1.4 GHz.
   - SMMUv3 Integration: CPU and NPU share the same Stage-1 page table (`TTBR0_EL1`), granting NPU direct translation access to kernel memory spaces.
 * **Unified Memory (UMA)**:
   - 96 GB HBM3e in 2.5D CoWoS-S advanced packaging (4 stacks of 24GB 12-Hi dies).
@@ -110,28 +120,28 @@ $$\begin{aligned}
 $$\text{Arithmetic Intensity} = \frac{512\text{ TFLOPS}}{3.2\text{ TB/s}} = 160\text{ FLOP/Byte}$$
 During memory-bound autoregressive decoding (batch size = 1), generating each token requires reading model parameters once. For a 1B FP16 model (2 GB weight payload):
 $$\text{Theoretical Peak Throughput} = \frac{3,200\text{ GB/s}}{2\text{ GB}} = 1,600\text{ Tokens/s}$$
-Our verified standalone testbench achieves **`1,470 Tokens/s`** (91.8% of theoretical saturation), confirming minimal bus waste and optimal pipelining.
+Under the modeled memory-bandwidth assumptions, the standalone testbench estimates `1,470 Tokens/s`, corresponding to 91.8% of the theoretical
+1,600 Tokens/s bandwidth ceiling.
 
 #### B. Thermal Design Power (TDP) Physical Breakdown
-Fabricated on TSMC's 4nm (N4P) node with 2.5D CoWoS-S packaging, total heat dissipation ($P_{\text{Total}}$) is modeled as:
+For architectural power modeling, AeroTensor-G1 assumes a 4nm-class process
+and 2.5D HBM integration. The estimated SoC power envelope is:, total heat dissipation ($P_{\text{Total}}$) is modeled as:
 $$P_{\text{Total}} = P_{\text{CPU}} + P_{\text{NPU}} + P_{\text{HBM3e}} + P_{\text{NoC/SLC}} + P_{\text{IO/VRM}}$$
-
-| Component | Stress Peak TDP | Typical AI Serving | Physical Derivation Basis |
+| Component | Estimated Peak Power | Modeled AI Serving Power | Modeling Assumption |
 | :--- | :--- | :--- | :--- |
 | **64-Core ARMv9.2-A CPU** | **120 W** | **75 W** | 64 Neoverse-V2 cores @ 3.0 GHz; ~1.87W/core at full vector stress. AI serving utilizes WFI idle states. |
 | **16-Tile NPU (512 TFLOPS)** | **160 W** | **110 W** | Systolic array efficiency: 3.5 TFLOPS/W $\rightarrow 512 / 3.5 \approx 146\text{ W} + 14\text{ W}$ L1 SRAM/control logic. |
 | **96GB HBM3e Memory Pool** | **95 W** | **60 W** | JEDEC HBM3e PHY & DRAM core: 3.2 pJ/bit; $25.6\text{ Tbps} \times 3.2\text{ pJ/bit} = 82\text{ W} + 13\text{ W}$ refresh/static. |
 | **AMBA 5 CHI NoC & 64MB SLC** | **45 W** | **30 W** | Dynamic charging/discharging across 4×4 2D Torus routers and 16 distributed SLC SRAM slices. |
 | **PCIe Gen5 / IO / VRM Loss** | **30 W** | **20 W** | Dual PCIe Gen5 x16 PHYs, SMMUv3/GICv3 peripherals, and on-board DC-DC buck regulation loss (~92% efficiency). |
-| **SoC Total Envelope** | **450 W** | **295 W** | **Standard Server Specification: 450 W (compatible with standard 2U air/liquid cooling)** |
-
+| **Modeled SoC Power Envelope** | **~450 W** | **~295 W** | **Standard Server Specification: 450 W (compatible with standard 2U air/liquid cooling)** |
 * **Aerospace / Flight-Mission Low-Power Profile (230 W)**:
   Under constrained avionics environments (hermetically sealed conduction chassis with a 250W thermal budget), hardware Dynamic Voltage and Frequency Scaling (DVFS) dials down the chip:
   - CPU clocks down to 2.2 GHz (**55 W**).
   - NPU clocks down to 1.0 GHz (**95 W**, still outputting ~365 TFLOPS FP16).
   - HBM3e steps down to 4.8 Gbps (**48 W**, yielding 2.45 TB/s bandwidth).
   - NoC and IO draw **32 W**.
-  - **Total Flight Envelope: 230 W**, providing hard real-time safety guarantees without risk of thermal throttling.
+  - **Modeled Flight Envelope: ~230 W**, targeting operation within a 250 W avionics thermal budget while reducing the likelihood of thermal throttling.
 
 ---
 
@@ -160,7 +170,7 @@ The `axtensor_mem` crate enforces the zero-copy philosophy:
   - `MemoryTier::L2LocalHbm`: 16GB high-bandwidth memory attached to the local compute quad.
   - `MemoryTier::L3HostUma`: 96GB global unified memory space accessible by all CPUs and NPUs.
 * **`ContinuousHugePageAllocator`**:
-  - **1GB HugePages (Level-1 Page Table)**: Model weight arenas are strictly allocated in continuous 1GB blocks. This reduces ARM VMSA page table walks to a single level, guaranteeing zero TLB misses during dense matrix multiply sweeps.
+  - **1GB HugePages (Level-1 Page Table)**: Model weight arenas are strictly allocated in continuous 1GB blocks. This reduces ARM VMSA page table walks to a single level, substantially reducing TLB pressure during sequential model-weight access during dense matrix multiply sweeps.
   - **2MB HugePages**: Dynamic KV-Cache buffers are allocated from a dedicated 2MB HugePage arena, eliminating page fragmentation.
 
 ### 3.3 `axtensor` — Bare-Metal AI Runtime & Multi-LLM Co-Hosting
