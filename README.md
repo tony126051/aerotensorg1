@@ -89,7 +89,7 @@ The following specifications define the target architecture used by the AeroTens
   - Supports SVE2 (4×128-bit vector pipelines) and SME (Scalable Matrix Extension) for CPU-side vector pre/post-processing.
 * **NPU Compute Fabric**:
   - 16 Heterogeneous Compute Tiles interconnected via a 4×4 2D Torus Coherent NoC.
-  - Target Peak Compute: **512 TFLOPS FP16/BF16 dense** (1024 TFLOPS with 2:1 structured sparsity) or **1024 TOPS INT8** sustained compute at 1.4 GHz.
+  - Target Peak Compute: **512 TFLOPS FP16/BF16 dense** (1024 TFLOPS with 2:1 structured sparsity) or **1024 TOPS INT8** sustained compute at 1.4 GHz operating point.
   - SMMUv3 Integration: CPU and NPU share the same Stage-1 page table (`TTBR0_EL1`), granting NPU direct translation access to kernel memory spaces.
 * **Unified Memory (UMA)**:
   - 96 GB HBM3e in 2.5D CoWoS-S advanced packaging (4 stacks of 24GB 12-Hi dies).
