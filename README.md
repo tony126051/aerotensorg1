@@ -15,7 +15,10 @@
 
 ## 1. Executive Summary & The AI-Native Paradigm Shift
 
-**AeroTensor-G1 OS** is an AI-Native, bare-metal operating system built directly upon the modular [ArceOS](https://github.com/arceos-org/arceos) Unikernel. Tailored for next-generation aerospace avionics, autonomous combat aerial vehicles (UCAVs), hypersonic guidance, and mission-critical edge robotics, AeroTensor-G1 OS re-architects the fundamental contract between hardware and software by treating the **Tensor as a first-class citizen of the operating system**.
+**AeroTensor-G1 OS** is an AI-native, bare-metal computing prototype built on the modular [ArceOS](https://github.com/arceos-org/arceos) unikernel. Tailored for next-generation aerospace avionics, autonomous combat aerial vehicles (UCAVs), hypersonic guidance, and mission-critical edge robotics, AeroTensor-G1 OS re-architects the fundamental contract between hardware and software by treating the **Tensor as a first-class citizen of the operating system**.
+
+**AeroTensor-G1 OS** is an architectural research prototype. Performance figures in this repository are based on software simulation, analytical modeling, or target specifications unless explicitly stated otherwise. These results represent modeled system-level performance and architectural targets, not measurements from fabricated silicon.
+
 
 ### The "Latency Tax" of Conventional Operating Systems
 In traditional AI computing stacks (e.g., Linux + NVIDIA CUDA / PyTorch or vLLM), running large language models incurs staggering software taxations:
