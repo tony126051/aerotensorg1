@@ -1,4 +1,4 @@
-# AeroTensor-G1: AI-Native Bare-Metal 作業系統
+# AeroTensor-G1: AI-Native 軟硬體協同設計平台
 
 [![Rust](https://img.shields.io/badge/Rust-1.85+-orange.svg)](https://www.rust-lang.org)
 [![ArceOS](https://img.shields.io/badge/ArceOS-Unikernel-blue.svg)](https://github.com/arceos-org/arceos)
@@ -15,32 +15,36 @@
 
 ## 1. 專案簡介：這到底是個什麼酷東西？
 
-**AeroTensor-G1 OS** 是一套專門為了自研 AI 晶片（AeroTensor-G1）與航太級、車載邊緣運算打造的 **AI Native 原生作業系統**。我們直接以開源超輕量 Unikernel 架構 **[ArceOS](https://github.com/arceos-org/arceos)** 當地基，把傳統 Linux 裡面那些又肥又拖慢效能的包袱全部砍掉！
+**AeroTensor-G1 OS** 是一套基於模組化 [ArceOS](https://github.com/arceos-org/arceos) Unikernel 構建的 AI 原生（AI-native）裸機運算研究原型平台。專為下一代航太航空電子、無人作戰飛行器（UCAV）、極超音速導引與關鍵任務邊緣機器人設計，AeroTensor-G1 OS 透過將**張量（Tensor）視為作業系統的第一類公民（First-class citizen）**，徹底重塑了軟硬體之間的協同契約。
+
+**AeroTensor-G1 OS** 為架構研究原型。本儲存庫中列出的所有效能指標與硬體參數，除另有明確說明外，均基於軟體模擬（Software Simulation）、分析建模（Analytical Modeling）以及目標架構規範。此等數據代表系統層級建模效能與架構目標值，非實體流片（Fabricated Silicon）晶片之硬體實測值。
 
 ### 傳統作業系統跑 AI 的「延遲稅（Latency Tax）」
-在傳統 Linux + CUDA / PyTorch 或 vLLM 的架構下，你要跑一個 LLM，作業系統得先開機好幾秒，接著 CUDA 初始化、記憶體在 Host 記憶體跟顯卡顯存之間來回搬移（PCIe 拷貝）、還要被 Linux 排程器的 Context Switch 搞出抖動：
-1. **開機冷啟動巨慢**：Linux 核心、systemd、CUDA Runtime 動輒耗費 3 到 15 秒，在航太緊急重啟或飛控任務上根本是致命傷。
-2. **記憶體多次拷貝**：模型權重必須走 Host DDR -> PCIe DMA -> GPU VRAM，白白浪費匯流排頻寬。
-3. **系統抖動 (OS Jitter)**：Linux CFS 排程器、非同步 Page Fault、TLB Shootdown 隨時帶來 2~10ms 的隨機延遲。
-4. **記憶體碎片化**：自回歸解碼中頻繁的 `malloc`/`free` 造成實體記憶體碎片與 TLB 快取失效。
+在傳統 AI 運算堆疊（例如 Linux + NVIDIA CUDA / PyTorch 或 vLLM）中，執行大型語言模型會衍生顯著的軟體開銷：
+1. **開機冷啟動過長**：Linux 宏內核、systemd 系統服務、CUDA 驅動程式與記憶體上下文初始化動輒耗費 3 到 15 秒，在緊迫的航太緊急重啟或飛控任務上十分不利。
+2. **記憶體多次拷貝**：模型權重必須經由 Host DDR -> PCIe DMA BAR -> GPU 顯存，倍增 DRAM 匯流排負載並拖慢部署。
+3. **系統抖動 (OS Jitter 與長尾延遲)**：Linux CFS 排程器、非同步分頁錯誤（Page Fault）、動態 TLB Shootdown 與搶佔式 Context Switch 隨時帶來 2~10 毫秒的不穩定延遲尖峰，破壞硬實時（Hard Real-Time）要求。
+4. **記憶體碎片化**：自回歸解碼過程中頻繁動態配置（`malloc`/`free`）導致實體記憶體破碎化與 TLB 快取失效。
 
 ### AeroTensor-G1 + ArceOS 解決方案
-在 AeroTensor-G1 上，**張量（Tensor）就是作業系統的第一類公民！** 開機直接就是 AI 運算引擎，**沒有中間商賺差價，零拷貝直接打滿硬體頻寬！**
-* **零 PCIe / Host-to-Device 記憶體拷貝**：96GB HBM3e 統一記憶體架構（UMA）提供單一實體連續位址空間，64 核心 CPU 與 16 Tile NPU 共享。
-* **推論前向零堆疊配置**：所有權重、暫存緩衝區與 KV-Cache 全面採用 1GB / 2MB 巨大頁（HugePages）連續鎖定。
-* **確定性執行與零系統抖動**：單一位址空間 Unikernel 根除頁表切換、TLB Flush 與中斷雜訊。
+AeroTensor-G1 OS 消除用戶空間與內核邊界，將推論引擎直接整合於裸機內核：
+* **零 PCIe / Host-to-Device 記憶體拷貝**：96GB HBM3e 統一記憶體架構（UMA）提供單一連續實體位址空間，由 64 核心 ARMv9.2-A CPU 與 16 Tile NPU 共享直通。
+* **推論前向零堆疊動態配置**：所有模型權重、暫存緩衝區與 KV-Cache 全面採用連續 1GB 與 2MB 巨大頁（HugePages）鎖定，根除動態堆疊配置與 TLB Miss。
+* **確定性執行與大幅降低作業系統抖動**：單一位址空間 Unikernel 徹底根除頁表切換、TLB Flush 與排程中斷雜訊。
 
-### 📊 關鍵架構指標量化對比
+### 📊 模型化架構指標對比 (Modeled Architectural Comparison)
 
-| 維度 / 指標 | 傳統架構 (Linux + CUDA / vLLM) | AeroTensor-G1 OS (ArceOS AI-Native Unikernel) | 效能提升幅度 |
+| 維度 / 指標 | 傳統架構 (參考基準範圍) | AeroTensor-G1 OS (建模 / 目標值) | 預期效能提升 |
 | :--- | :--- | :--- | :--- |
 | **執行環境** | 多行程、Ring 0/Ring 3 切換、CFS | 單一位址空間 Unikernel (`#![no_std]`) | **零 Context Switch 開銷** |
-| **冷啟動首字延遲 (TTFT)** | 3,000 ms ~ 12,000 ms (CUDA Init + 權重載入) | **`4.32 ms`** (冷啟動直出第一個 Token) | **> 700× 超光速開機** |
+| **冷啟動首字延遲 (TTFT)** | 3,000 ms ~ 12,000 ms (CUDA 初始化 + 權重載入) | **`4.32 ms`** (冷啟動直出第一個 Token) | **> 700× 超光速開機** |
 | **自回歸持續吞吐量** | ~800 - 1,100 Tokens/s (受 PCIe 限制) | **`1,470 Tokens/s`** (1B FP16 穩定持續輸出) | **~1.5× 吞吐提升** |
-| **單 Token 解碼延遲** | 2.5 ms ~ 8.0 ms (含 OS Jitter 抖動) | **`0.68 ms`** (次毫秒級確定性延遲) | **~4× 到 10× 超低延遲** |
+| **單 Token 解碼延遲** | 2.5 ms ~ 8.0 ms (含 OS 抖動) | **`0.68 ms`** (次毫秒級確定性延遲) | **~4× 到 10× 超低延遲** |
 | **Host 到 NPU 記憶體拷貝** | 1~2 次拷貝 (Host DRAM -> PCIe -> VRAM) | **`0 次`** (96GB HBM3e 物理位址直通) | **零匯流排冗餘** |
 | **跨 Tile 規約同步延遲** | 5 µs ~ 15 µs (PCIe / NVLink NCCL 核心) | **`168 ns`** (硬體 Reduction Pulse 線路) | **~50× 極速脈衝同步** |
 | **TLB 轉譯開銷** | 4 級頁表遍歷 (4KB 普通頁) | **1 級頁表直通** (1GB/2MB 巨大頁) | **零 TLB 快取抖動** |
+
+> **附註：** AeroTensor-G1 之各項數據源自軟體協同模擬、分析建模與架構目標規範，非實體製造晶片之量測數據。
 
 ---
 
@@ -66,15 +70,18 @@
 |  - 64 位元組對齊 SQE / 16 位元組 CQE                  - 無鎖原子環形佇列 (Atomic SQ/CQ Ring Buffer) |
 |  - TensorComputeDriver 硬體介面抽象                   - GICv3 SPI 64~79 中斷與 ARM `sev` 事件分發    |
 +----------------------------------------------------------------------------------------------------+
-|                            AEROTENSOR-G1 自研加速晶片 (硬體層)                                     |
+|                            AEROTENSOR-G1 建模加速器架構 (硬體層)                                   |
 |  - 64 核心 ARMv9.2-A CPU (Neoverse-V2, 3.0 GHz)       - 16 異質 NPU Tiles (4x4 2D Torus NoC)       |
 |  - 96GB HBM3e 統一記憶體 (3,200 GB/s UMA)             - 硬體屏障單元 (HBU) 奈秒脈衝同步線路         |
 +----------------------------------------------------------------------------------------------------+
 ```
 
-### 2.1 晶片硬體子系統規格
+### 2.1 目標矽晶硬體架構
+
+以下規格定義了 AeroTensor-G1 分析與軟體建模環境所採用的目標硬體架構：
+
 * **CPU 核心群**：64 核心 ARMv9.2-A（4 個 Cluster × 16 核心，Neoverse-V2 架構 @ 3.0 GHz），搭載 SVE2 向量延伸指令（4×128-bit 管線）與 SME 矩陣延伸架構。每核心 64KB L1 I/D 快取與 1MB L2 快取（總計 64MB L2）。
-* **NPU 運算核心**：16 顆異質運算 Tile，以 4×4 2D Torus 一致性 NoC 連接，提供 **512 TFLOPS (FP16/BF16 dense) / 1024 TOPS (INT8)** 的狂暴算力（@ 1.4 GHz）。支援 SMMUv3 共享 Stage-1 頁表（`TTBR0_EL1`），直通內核位址。
+* **NPU 運算核心**：16 顆異質運算 Tile，以 4×4 2D Torus 一致性 NoC 連接。目標尖峰算力：**512 TFLOPS (FP16/BF16 dense)**（2:1 結構化稀疏下為 1024 TFLOPS）或在 1.4 GHz 工作頻率下提供 **1024 TOPS (INT8)** 持續算力。支援 SMMUv3 共享 Stage-1 頁表（`TTBR0_EL1`），直通內核位址。
 * **UMA 統一記憶體**：96 GB HBM3e（台積電 2.5D CoWoS-S 封裝，4 組 24GB 12-Hi 堆疊），透過 4096-bit 匯流排 @ 6.25 Gbps 提供高達 **3,200 GB/s (3.2 TB/s)** 的物理頻寬。
 * **一致性匯流排**：AMBA 5 CHI 搭配 4×4 2D Torus NoC（二分頻寬 **1,024 GB/s**，全晶片 Crossbar 聚合高達 **4,096 GB/s**）。CPU 跟 NPU 共用快取一致性域，硬體自動保證一致，**軟體完全不用手動 Cache Flush（CMO Bypass）**！
 * **晶上快取與 SRAM**：64MB 分散式系統快取 (SLC，頻寬 **2,048 GB/s**) + 16MB L1 高速 Scratchpad SRAM (頻寬 **2,867 GB/s**)。
@@ -99,23 +106,23 @@ $$\begin{aligned}
   $$\text{Arithmetic Intensity} = \frac{512\text{ TFLOPS}}{3.2\text{ TB/s}} = 160\text{ FLOP/Byte}$$
   在 LLM 自回歸解碼這種極度吃記憶體頻寬（Memory-bound）的場景下（Batch Size = 1），生成每個 Token 都必須讀取一次模型權重。對於 1B FP16 模型（2 GB 權重）：
   $$\text{理論吞吐上限} = \frac{3,200\text{ GB/s}}{2\text{ GB}} = 1,600\text{ Tokens/s}$$
-  我們實測壓測跑出 **`1,470 Tokens/s`**（達到理論極限的 91.8%），數字咬得嚴絲合縫！
+  在建模的記憶體頻寬假設下，獨立測試套件估算可達 **`1,470 Tokens/秒`**，相當於 1,600 Tokens/秒 理論頻寬天花板的 91.8%，數字咬得嚴絲合縫！
 
 #### B. 熱設計功耗 (TDP: 伺服器 450W / 航太 230W) 推導
-在台積電 4nm (TSMC N4P) 製程與 2.5D CoWoS-S 封裝下，功耗由五大區塊組成：
+針對架構功耗建模，AeroTensor-G1 假設採用 4nm 級製程與 2.5D HBM 封裝。預估的 SoC 功耗包絡模型如下：
 $$P_{\text{Total}} = P_{\text{CPU}} + P_{\text{NPU}} + P_{\text{HBM3e}} + P_{\text{NoC/SLC}} + P_{\text{IO/VRM}}$$
 
-| 組件區塊 | 極限壓力 TDP | 典型 AI 推論功耗 | 物理推導依據 |
+| 組件區塊 | 預估尖峰功耗 | 建模 AI 推論功耗 | 建模假設依據 |
 | :--- | :--- | :--- | :--- |
 | **64 核 ARMv9.2-A CPU** | **120 W** | **75 W** | 64 核 Neoverse-V2 @ 3.0 GHz；滿載單核約 1.87W。AI 推論時多數核心處於 WFI 待機。 |
 | **16 Tile NPU (512 TFLOPS)** | **160 W** | **110 W** | 脈動陣列能效比約 3.5 TFLOPS/W $\rightarrow 512 / 3.5 \approx 146\text{ W} + 14\text{ W}$ L1 SRAM 與控制邏輯。 |
 | **96GB HBM3e 記憶體池** | **95 W** | **60 W** | JEDEC PHY + DRAM 顆粒約 3.2 pJ/bit；$25.6\text{ Tbps} \times 3.2\text{ pJ/bit} = 82\text{ W} + 13\text{ W}$ 靜態刷新功耗。 |
 | **AMBA 5 CHI NoC & 64MB SLC** | **45 W** | **30 W** | 4×4 2D Torus 路由器與 16 個 SLC 分區高頻交叉切換動態功耗。 |
 | **PCIe Gen5 / IO / VRM 損耗** | **30 W** | **20 W** | 雙 PCIe Gen5 x16 PHY、SMMU/GIC 週邊與 DC-DC 降壓穩壓轉換損耗（約 92% 轉換效率）。 |
-| **整晶片總功耗 (SoC Total)** | **450 W** | **295 W** | **標準伺服器規格：450 W（完美契合 2U 風冷或液冷冷板極限，對標 NVIDIA GH200）** |
+| **建模 SoC 功耗包絡** | **~450 W** | **~295 W** | **標準伺服器規格：450 W（相容主流 2U 風冷或液冷冷板散熱，對標 NVIDIA GH200）** |
 
 * **航太/無人機 230W 節能模式**：
-  機載封閉抗震艙散熱預算只有 250W。我們透過硬體 DVFS 降頻：CPU 降到 2.2 GHz (55W)、NPU 降到 1.0 GHz (95W，依然能打出 ~365 TFLOPS)、HBM3e 降到 4.8 Gbps (48W, 2.45 TB/s)，NoC/IO 降至 32W，整顆 SoC 功耗壓制在 **230 W**，既能抗熱暴走、又能兼顧飛控次毫秒反應！
+  機載封閉抗震艙散熱預算只有 250W。我們透過硬體 DVFS 降頻：CPU 降到 2.2 GHz (55W)、NPU 降到 1.0 GHz (95W，依然能打出 ~365 TFLOPS)、HBM3e 降到 4.8 Gbps (48W, 2.45 TB/s)，NoC/IO 降至 32W。**建模機載飛行功耗包絡：~230 W**，目標在 250W 航電封閉散熱預算內穩定運行，有效降低熱降頻（Thermal Throttling）風險，兼顧飛控次毫秒即時反應！
 
 ---
 
@@ -132,7 +139,7 @@ $$P_{\text{Total}} = P_{\text{CPU}} + P_{\text{NPU}} + P_{\text{HBM3e}} + P_{\te
 ### 2. `axtensor_mem`（三級記憶體與大頁分配器）
 * 把記憶體切成 **L1 片上高速 SRAM (16MB)**、**L2 區域 HBM (16GB)**、**L3 共享 UMA (96GB)**。
 * 實作 `ContinuousHugePageAllocator`：
-  - **1GB 巨大頁（Level 1 頁表直通）**：模型權重直接塞進連續 1GB 頁框，TLB Miss 直接歸零。
+  - **1GB 巨大頁（Level-1 頁表直通）**：模型權重嚴格分配於連續 1GB 頁框中，大幅降低連續模型權重讀取時的 TLB 壓力，在矩陣掃描過程中根除 TLB 快取抖動。
   - **2MB 巨大頁**：專供動態 KV-Cache 緩衝區使用，避免小頁碎片化。
 
 ### 3. `axtensor`（神經網路算子與多模型掛載架構）
